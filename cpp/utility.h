@@ -133,6 +133,23 @@ namespace utility
 
       return s;
     }
+
+    inline std::string vector_to_string(std::vector<double> v, int precision)
+    {
+      if (v.size() == 0)
+      {
+        return std::string("");
+      }
+      std::ostringstream ss;
+      ss << "[  ";
+      for (int i = 0; i < v.size(); i++)
+      {
+        ss << utility::round_to_decimal(v.at(i), precision) << "  ";
+      }
+      ss << "]";
+
+      return ss.str();
+    }
   }  
 
 }

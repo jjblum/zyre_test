@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <iostream>
 
 #include "/home/jason/projects/zyrecpp/zyrecpp.hpp"
 
