@@ -134,7 +134,7 @@ namespace utility
       return s;
     }
 
-    inline std::string vector_to_string(std::vector<double> v, int precision)
+    inline std::string dvector_to_string(std::vector<double> v, int precision)
     {
       if (v.size() == 0)
       {
@@ -147,6 +147,22 @@ namespace utility
         ss << utility::round_to_decimal(v.at(i), precision) << "  ";
       }
       ss << "]";
+
+      return ss.str();
+    }
+
+    inline std::string svector_to_string(std::vector<std::string> v, std::string title)
+    {
+      std::ostringstream ss;
+      ss << title << ":\n";
+      if (v.size() == 0)
+      {
+        return ss.str();
+      }      
+      for (int i = 0; i < v.size(); i++)
+      {
+        ss << "    " << v.at(i) << "\n";
+      }
 
       return ss.str();
     }

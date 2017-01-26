@@ -15,13 +15,17 @@ class Robot
 {
 public:
   Robot();
-  Robot(std::string name);
-  void print();
+  Robot(std::string name, int discovery_interval_usec = 999, bool verbose = false);
+  void print();  
+  void start();
+  void stop();
+  void join_group(std::string group);
+  void list_peers();
 
 private:
   std::unique_ptr<zyre::node_t> m_pNode;
   std::string m_name;  
-  std::vector<double> m_state;  
+  std::vector<double> m_state;
 };
 
 
