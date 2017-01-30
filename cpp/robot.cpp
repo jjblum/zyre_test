@@ -7,13 +7,13 @@ Robot::Robot()
 }
 
 
-Robot::Robot(std::string name, int discovery_interval_usec, bool verbose)
+Robot::Robot(std::string name, int discovery_interval_msec, bool verbose)
 : m_name(name)
 {
   m_pNode = std::unique_ptr<zyre::node_t>(new zyre::node_t(name));
-  if (verbose) m_pNode->set_verbose();
-  m_pNode->set_port(utility::random_numbers::rand_int(11400, 11499));
-  m_pNode->set_interval(discovery_interval_usec);
+  //if (verbose) m_pNode->set_verbose();
+  m_pNode->set_verbose();
+  m_pNode->set_interval(discovery_interval_msec);
 
   m_state = utility::random_numbers::rand(ROBOT_STATE_SIZE, 0., 1.);
 }
@@ -42,6 +42,48 @@ void Robot::join_group(std::string group)
 
 void Robot::list_peers()
 {
-  std::vector<std::string> peer_list = m_pNode->peers();
+  std::vector<std::string> peer_list = m_pNode->peers(); // TODO: use node names rather than peer hashes
   std::cout << utility::string_tools::svector_to_string(peer_list, "PEERS") << std::endl;
+}
+
+void Robot::simple_shout()
+{
+  // shout to group 0
+  std::vector<std::string> groups = m_pNode->own_groups();
+  if (groups.size() < 1)
+  {
+    std::cout << "No groups to shout to. So lonely...";
+    return;
+  }
+  std::cout << "Shouting to group " << groups.at(0) << std::endl;
+
+  
+  // construct a basic message
+  zyre::zmsg hey;
+  hey.add_str("LOUD NOISES!!!");
+
+  // shout the message
+  try 
+  {
+    if (m_pNode)
+    {
+      //std::cout << "before shout: size = " << hey.size() << std::endl;  
+      //std::cout << "before shout, zmsg_is = " << hey.is_zmsg() << std::endl;    
+      shout(groups.at(0), hey);
+      //std::cout << "after shout: size = " << hey.size() << std::endl;
+      //std::cout << "after shout, zmsg_is = " << hey.is_zmsg() << std::endl;    
+    }
+  }
+  catch (const std::exception& e)
+  {
+    std::cout << "ERROR: simple_shout: m_pNode->shout() error: " << std::endl;
+    std::cout << e.what() << std::endl;
+  }
+  
+}
+
+void Robot::shout(const std::string& group, zyre::zmsg &msg)
+{
+  m_pNode->shout(group, msg.msg_ptr());
+  msg.nullify(); // required because zyre destroys the message!
 }

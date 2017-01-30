@@ -1,5 +1,5 @@
 CXX = g++
-CPPFLAGS += -I/usr/local/include -I/home/jason/projects/zyrecpp/
+CPPFLAGS += -I/usr/local/include
 CXXFLAGS += -std=c++11
 LDFLAGS += -L/usr/local/lib \
            -lzyre -lczmq -lzmq

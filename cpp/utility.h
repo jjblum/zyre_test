@@ -157,12 +157,15 @@ namespace utility
       ss << title << ":\n";
       if (v.size() == 0)
       {
+        // std::cout << "svector_to_string: v.size() = 0, returning \"\"" << std::endl;
         return ss.str();
-      }      
+      }
+      // std::cout << "svector_to_string:  v.size() = " << v.size() << std::endl;  
       for (int i = 0; i < v.size(); i++)
       {
+        // std::cout << v.at(i) << std::endl;
         ss << "    " << v.at(i) << "\n";
-      }
+      }      
 
       return ss.str();
     }

@@ -2,29 +2,31 @@
 #include <chrono>
 
 #include "robot.hpp"
-
-
+#include "utility.h"
 
 int main(int argc, char **argv)
 {
 
-  Robot robot_1 = Robot();
-  Robot robot_2 = Robot("Chad the party node", 100, true);
+  Robot robot = Robot();
+  robot.start();
 
-  robot_1.start();
-  robot_2.start();
+  robot.join_group("Robot Lottery News");
 
-  robot_1.join_group("HEYGUY");
-  robot_2.join_group("HEYGUY");
+  for (int i = 0; i < 20; i++)
+  {
+    robot.list_peers();
+    if (utility::random_numbers::rand() > 0.9)
+    {
+      std::cout << "won the lottery, shout the good news!" << std::endl;
+      robot.simple_shout();
+    }
 
-  // idle/work for X seconds
-  std::this_thread::sleep_for (std::chrono::milliseconds(1000));
-  robot_2.list_peers();
+    // TODO: whisper congratulations to any peer that wins the lottery
+    
+    std::this_thread::sleep_for (std::chrono::milliseconds(200));    
+  }  
   
-
-
-  robot_1.stop();
-  robot_2.stop();
+  robot.stop();
 
   return 0;
 }
