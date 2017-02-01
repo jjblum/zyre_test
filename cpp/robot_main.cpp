@@ -23,10 +23,11 @@ int main(int argc, char **argv)
 
     // TODO: whisper congratulations to any peer that wins the lottery
     
-    std::this_thread::sleep_for (std::chrono::milliseconds(200));    
+    std::this_thread::sleep_for (std::chrono::milliseconds(200));
   }  
   
   robot.stop();
+  std::this_thread::sleep_for (std::chrono::milliseconds(1000)); // wait a second to make sure everything wraps up
 
   return 0;
 }

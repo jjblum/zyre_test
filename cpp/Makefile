@@ -2,7 +2,8 @@ CXX = g++
 CPPFLAGS += -I/usr/local/include
 CXXFLAGS += -std=c++11
 LDFLAGS += -L/usr/local/lib \
-           -lzyre -lczmq -lzmq
+           -lzyre -lczmq -lzmq \
+           -lpthread
 ALLFLAGS += $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS)
 
 ROBOT_EXECUTABLE = robot

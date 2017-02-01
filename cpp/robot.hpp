@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "zyrecpp.hpp"
+#include "loopingThreadWrapper.hpp"
 
 #include "utility.h"
 
@@ -16,7 +17,7 @@ class Robot
 {
 public:
   Robot();
-  Robot(std::string name, int discovery_interval_msec = 999, bool verbose = false);
+  Robot(std::string name, int discovery_interval_msec = 100, bool verbose = false);
   void print();  
   void start();
   void stop();
@@ -26,9 +27,10 @@ public:
   void shout(const std::string& group, zyre::zmsg &msg);
 
 private:
-  std::unique_ptr<zyre::node_t> m_pNode = nullptr;
+  std::shared_ptr<zyre::node_t> m_pNode = nullptr; // must be a shared_ptr, because a unique_ptr is MOVE ONLY, it can't be copied
+  std::unique_ptr<loopingThreadWrapper> m_pRecvThread = nullptr;
   std::string m_name;  
-  std::vector<double> m_state;
+  std::vector<double> m_state;  
 };
 
 #endif // _ZYRE_ROBOT_H_

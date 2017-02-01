@@ -2,7 +2,7 @@
 
 
 Robot::Robot()
-: Robot(utility::string_tools::random_string(8))
+: Robot(utility::string_tools::random_string(8), 1000, true)
 {
 }
 
@@ -10,10 +10,11 @@ Robot::Robot()
 Robot::Robot(std::string name, int discovery_interval_msec, bool verbose)
 : m_name(name)
 {
-  m_pNode = std::unique_ptr<zyre::node_t>(new zyre::node_t(name));
-  //if (verbose) m_pNode->set_verbose();
-  m_pNode->set_verbose();
+  m_pNode = std::shared_ptr<zyre::node_t>(new zyre::node_t(name));
+  if (verbose) m_pNode->set_verbose();
   m_pNode->set_interval(discovery_interval_msec);
+
+  m_pRecvThread = std::unique_ptr<loopingThreadWrapper>(new loopingThreadWrapper(20, "zyre_recv", m_pNode));
 
   m_state = utility::random_numbers::rand(ROBOT_STATE_SIZE, 0., 1.);
 }
@@ -28,11 +29,13 @@ void Robot::print()
 void Robot::start()
 {
   m_pNode->start();
+  m_pRecvThread->start();
 }
 
 void Robot::stop()
 {
   m_pNode->stop();
+  m_pRecvThread->stop();
 }
 
 void Robot::join_group(std::string group)
@@ -66,12 +69,8 @@ void Robot::simple_shout()
   try 
   {
     if (m_pNode)
-    {
-      //std::cout << "before shout: size = " << hey.size() << std::endl;  
-      //std::cout << "before shout, zmsg_is = " << hey.is_zmsg() << std::endl;    
-      shout(groups.at(0), hey);
-      //std::cout << "after shout: size = " << hey.size() << std::endl;
-      //std::cout << "after shout, zmsg_is = " << hey.is_zmsg() << std::endl;    
+    {   
+      shout(groups.at(0), hey);   
     }
   }
   catch (const std::exception& e)
@@ -79,7 +78,6 @@ void Robot::simple_shout()
     std::cout << "ERROR: simple_shout: m_pNode->shout() error: " << std::endl;
     std::cout << e.what() << std::endl;
   }
-  
 }
 
 void Robot::shout(const std::string& group, zyre::zmsg &msg)

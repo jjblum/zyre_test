@@ -20,6 +20,10 @@ namespace zyre
     {
     public:
         zmsg() : m_msg(zmsg_new()) {}
+        zmsg(zmsg_t * msg)
+        : m_msg(msg)
+        {
+        }
         ~zmsg()
         {
             if (m_msg)
@@ -50,6 +54,21 @@ namespace zyre
         void nullify()
         {
             m_msg = nullptr;
+        }
+        void print()
+        {
+            if (!m_msg) return;
+            char *type = zmsg_popstr (m_msg);
+            char *peer = zmsg_popstr (m_msg);
+            char *name = zmsg_popstr (m_msg);
+            char *group = zmsg_popstr (m_msg);
+            char *message = zmsg_popstr (m_msg);
+            std::cout << "zmsg type = " << type << std::endl;
+            std::cout << "  from peer = " << peer << std::endl;
+            std::cout << "  from name = " << name << std::endl;
+            std::cout << "  group = " << group << std::endl;
+            //std::cout << "  message:" << std::endl;
+            //std::cout << "    " << message << std::endl;
         }
     private:
         zmsg_t *m_msg = nullptr;
