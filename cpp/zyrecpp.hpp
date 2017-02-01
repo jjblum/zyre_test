@@ -63,12 +63,15 @@ namespace zyre
             char *name = zmsg_popstr (m_msg);
             char *group = zmsg_popstr (m_msg);
             char *message = zmsg_popstr (m_msg);
-            std::cout << "zmsg type = " << type << std::endl;
-            std::cout << "  from peer = " << peer << std::endl;
-            std::cout << "  from name = " << name << std::endl;
-            std::cout << "  group = " << group << std::endl;
-            //std::cout << "  message:" << std::endl;
-            //std::cout << "    " << message << std::endl;
+            if (type) std::cout << "zmsg type = " << type << std::endl;
+            if (peer) std::cout << "  from peer = " << peer << std::endl;
+            if (name) std::cout << "  from name = " << name << std::endl;
+            if (group) std::cout << "  group = " << group << std::endl;
+            if (message)
+            {
+                std::cout << "  message:" << std::endl;
+                std::cout << "    " << message << std::endl;
+            }
         }
     private:
         zmsg_t *m_msg = nullptr;
@@ -184,16 +187,16 @@ namespace zyre
     public:
         node_t(const std::string& name = "")
         {
-            if (name == "")
-                m_self = zyre_new(NULL);
-            else
-                m_self = zyre_new(name.c_str());
+            if (name == "") m_self = zyre_new(NULL);
+            else m_self = zyre_new(name.c_str());
+
+            m_poller = zpoller_new(socket(), nullptr); // --> returns null right now...why?
         }
 
         ~node_t()
         {
-            if (m_self)
-                zyre_destroy(&m_self);
+            if (m_self) zyre_destroy(&m_self);
+            if (m_poller) zpoller_destroy(&m_poller);
         }
 
         node_t(const node_t& other) = delete;
@@ -292,6 +295,25 @@ namespace zyre
             return zyre_recv(m_self);
         }
 
+        zmsg_t *recv_deadline(int msec_deadline) const
+        {
+            //std::cout << "node_t::recv_deadline()..." << std::endl;
+            if (!m_poller)
+            {
+                std::cout << "WARNING: zpoller is null" << std::endl;
+                return nullptr;
+            }
+            void *which = zpoller_wait(m_poller, msec_deadline);
+            if (m_poller && which) return zmsg_recv(which);
+            return nullptr;
+        }
+
+        bool poller_expired()
+        {
+            if (m_poller) return zpoller_expired(m_poller);
+            return false;
+        }
+
         event_t event() const
         {
             return event_t(zyre_event_new(m_self));
@@ -374,6 +396,7 @@ namespace zyre
             return ret;
         }
 
-        zyre_t* m_self;
+        zyre_t *m_self = nullptr;
+        zpoller_t *m_poller = nullptr;
     };
 }

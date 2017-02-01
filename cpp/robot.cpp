@@ -2,7 +2,7 @@
 
 
 Robot::Robot()
-: Robot(utility::string_tools::random_string(8), 1000, true)
+: Robot(utility::string_tools::random_string(8), 1000, false)
 {
 }
 
@@ -14,7 +14,7 @@ Robot::Robot(std::string name, int discovery_interval_msec, bool verbose)
   if (verbose) m_pNode->set_verbose();
   m_pNode->set_interval(discovery_interval_msec);
 
-  m_pRecvThread = std::unique_ptr<loopingThreadWrapper>(new loopingThreadWrapper(20, "zyre_recv", m_pNode));
+  m_pRecvThread = std::unique_ptr<loopingThreadWrapper>(new loopingThreadWrapper(0, "zyre_recv", m_pNode));
 
   m_state = utility::random_numbers::rand(ROBOT_STATE_SIZE, 0., 1.);
 }
@@ -26,11 +26,13 @@ void Robot::print()
   std::cout << "STATE = " << utility::string_tools::dvector_to_string(m_state, 3) << std::endl;
 }
 
+
 void Robot::start()
 {
   m_pNode->start();
   m_pRecvThread->start();
 }
+
 
 void Robot::stop()
 {
@@ -38,16 +40,19 @@ void Robot::stop()
   m_pRecvThread->stop();
 }
 
+
 void Robot::join_group(std::string group)
 {
   m_pNode->join(group);
 }
+
 
 void Robot::list_peers()
 {
   std::vector<std::string> peer_list = m_pNode->peers(); // TODO: use node names rather than peer hashes
   std::cout << utility::string_tools::svector_to_string(peer_list, "PEERS") << std::endl;
 }
+
 
 void Robot::simple_shout()
 {
@@ -66,19 +71,12 @@ void Robot::simple_shout()
   hey.add_str("LOUD NOISES!!!");
 
   // shout the message
-  try 
-  {
-    if (m_pNode)
-    {   
-      shout(groups.at(0), hey);   
-    }
-  }
-  catch (const std::exception& e)
-  {
-    std::cout << "ERROR: simple_shout: m_pNode->shout() error: " << std::endl;
-    std::cout << e.what() << std::endl;
+  if (m_pNode)
+  {   
+    shout(groups.at(0), hey);   
   }
 }
+
 
 void Robot::shout(const std::string& group, zyre::zmsg &msg)
 {
