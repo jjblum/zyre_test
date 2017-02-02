@@ -14,6 +14,9 @@ Robot::Robot(std::string name, int discovery_interval_msec, bool verbose)
   if (verbose) m_pNode->set_verbose();
   m_pNode->set_interval(discovery_interval_msec);
 
+  m_pNode->set_evasive_timeout(1000);
+  m_pNode->set_expired_timeout(1000);
+
   m_pRecvThread = std::unique_ptr<loopingThreadWrapper>(new loopingThreadWrapper(0, "zyre_recv", m_pNode));
 
   m_state = utility::random_numbers::rand(ROBOT_STATE_SIZE, 0., 1.);
@@ -60,7 +63,7 @@ void Robot::simple_shout()
   std::vector<std::string> groups = m_pNode->own_groups();
   if (groups.size() < 1)
   {
-    std::cout << "No groups to shout to. So lonely...";
+    std::cout << "No groups to shout to. So lonely..." << std::endl;
     return;
   }
   std::cout << "Shouting to group " << groups.at(0) << std::endl;

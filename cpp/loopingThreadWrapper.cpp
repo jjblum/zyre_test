@@ -71,21 +71,31 @@ void loopingThreadWrapper::loop()
 
 void loopingThreadWrapper::execute()
 {
-    //std::cout << "Thread \"" << m_name << "\": listening for zmsg's..." << std::endl;
+    std::cout << "Thread \"" << m_name << "\" executing..." << std::endl;
+    
     int msec_deadline = 1000;
     zyre::zmsg msg(m_pNode->recv_deadline(msec_deadline));
     if (!msg.is_zmsg())
     {
-        //std::cout << "recv_deadline did not return a zmsg..." << std::endl;        
+        std::cout << "recv_deadline did not return a zmsg..." << std::endl;        
         if (m_pNode->poller_expired())
         {
-            std::cout << "Deadline of " << msec_deadline << " msec expired w/o a zmsg..." << std::endl;
+            std::cout << "    Deadline of " << msec_deadline << " msec expired w/o a zmsg" << std::endl;
+        }
+        else
+        {
+            std::cout << "    Something other than the deadline caused the issue" << std::endl;
         }
         return;
     }
     std::cout << "Thread \"" << m_name << "\": received a zmsg!" << std::endl;
-    std::cout << "   zmsg.size() = " << msg.size() << std::endl;
+    std::cout << "   zmsg_content_size() = " << msg.content_size() << " bytes" << std::endl;
     msg.print();
+    
+    /* // TOO BAD THE ZYRE EVENT RECIEVE BLOCKS! I wonder why they didn't wrap the nowait version. /shrug
+    zyre::event_t event = m_pNode->event();
+    event.print();
+    */
 }
 
 // static variables

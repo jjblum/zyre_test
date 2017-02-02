@@ -1,6 +1,8 @@
 #pragma once
 
 #include "zyre.h"
+//#include "zyre_library.h" // for typedef of zyre_event_t
+//#include "zyre_event.h"
 
 #include <string>
 #include <exception>
@@ -9,6 +11,7 @@
 
 namespace zyre
 {
+
     class error_t : public std::runtime_error
     {
     public:
@@ -40,10 +43,16 @@ namespace zyre
             if (!m_msg) std::cout << "WARNING: zmsg.msg_ptr() returned nullptr" << std::endl;
             return m_msg; 
         }
-        size_t size()
+        size_t content_size()
         {
             if (m_msg) return zmsg_content_size(m_msg);
-            std::cout << "WARNING:  zmsg.size() run on a nullptr, returning 0" << std::endl;
+            std::cout << "WARNING:  zmsg_content_size() ran on a nullptr, returning 0" << std::endl;
+            return 0;
+        }
+        size_t frame_count()
+        {
+            if (m_msg) return zmsg_size(m_msg);
+            std::cout << "WARNING:  zmsg_size() ran on a nullptr, returning 0" << std::endl;
             return 0;
         }
         bool is_zmsg()
@@ -55,22 +64,134 @@ namespace zyre
         {
             m_msg = nullptr;
         }
+
         void print()
         {
-            if (!m_msg) return;
-            char *type = zmsg_popstr (m_msg);
-            char *peer = zmsg_popstr (m_msg);
-            char *name = zmsg_popstr (m_msg);
-            char *group = zmsg_popstr (m_msg);
-            char *message = zmsg_popstr (m_msg);
-            if (type) std::cout << "zmsg type = " << type << std::endl;
-            if (peer) std::cout << "  from peer = " << peer << std::endl;
-            if (name) std::cout << "  from name = " << name << std::endl;
-            if (group) std::cout << "  group = " << group << std::endl;
-            if (message)
+            if (!m_msg)
             {
-                std::cout << "  message:" << std::endl;
-                std::cout << "    " << message << std::endl;
+                std::cout << "WARNING:  zmsg.print() called on a null zmsg_t*" << std::endl;
+                return;
+            }
+            /*
+            struct zyre_event_t {
+                char *type;             //  Event type as string
+                char *peer_uuid;        //  Sender UUID as string
+                char *peer_name;        //  Sender public name as string
+                char *peer_addr;        //  Sender ipaddress as string, for an ENTER event
+                zhash_t *headers;       //  Headers, for an ENTER event
+                char *group;            //  Group name for a SHOUT event
+                zmsg_t *msg;            //  Message payload for SHOUT or WHISPER
+            };
+            */            
+
+            std::vector<zframe_t *> frames;
+            std::vector<int> frame_sizes;
+            int count = frame_count();
+            frames.resize(count);
+            frame_sizes.resize(count);
+            std::cout << "  There are " << count << " frames in the zmsg" << std::endl;
+            for (int i = 0; i < count; i++)
+            {
+                frames.at(i) = zmsg_pop(m_msg);
+                frame_sizes.at(i) = zframe_size(frames.at(i));
+                std::cout << "    Frame " << i+1 << " size = " << frame_sizes.at(i) << " bytes" << std::endl; 
+            }
+
+            const char *pZType = (char*)zframe_data(frames.at(0));
+            const char *pPeer = (char*)zframe_data(frames.at(1));
+            const char *pName = (char*)zframe_data(frames.at(2));                    
+            std::string ztype;
+            std::string peer;
+            std::string name;
+            if (pZType)
+            {
+                ztype = std::string(pZType);
+                ztype = ztype.substr(0, frame_sizes.at(0)); 
+                std::cout << "  zmsg type = " << ztype << std::endl;               
+            }
+            if (pPeer)
+            {
+                peer = std::string(pPeer);
+                peer = peer.substr(0, frame_sizes.at(1));
+                std::cout << "  peer UUID = " << peer << std::endl;
+            }
+            if (pName)
+            {
+                name = std::string(pName);
+                name = name.substr(0, frame_sizes.at(2));
+                std::cout << "  peer name = " << name << std::endl;
+            }
+
+            // do special things based on the type
+            if (ztype.compare("ENTER") == 0)
+            {
+                std::string addr;
+                std::string headers;
+                const char *pHeaders = (char*)zframe_data(frames.at(3));
+                const char *pAddr = (char*)zframe_data(frames.at(4));
+                if (pHeaders)
+                {
+                    headers = std::string(pHeaders);
+                    headers = headers.substr(0, frame_sizes.at(3));
+                    std::cout << "  headers = " << headers << std::endl;
+                }                
+                if (pAddr)
+                {
+                    addr = std::string(pAddr);
+                    addr = addr.substr(0, frame_sizes.at(4));
+                    std::cout << "  peer addr = " << addr << std::endl;
+                }
+            }
+            if (ztype.compare("JOIN") == 0)
+            {
+                std::string group;
+                const char *pGroup = (char*)zframe_data(frames.at(3));
+                if (pGroup)
+                {
+                    group = std::string(pGroup);
+                    group = group.substr(0, frame_sizes.at(3));
+                    std::cout << "  peer group = " << group << std::endl;
+                }
+            }
+            if (ztype.compare("SHOUT") == 0)
+            {
+                std::string group;
+                std::string message;
+                const char *pGroup = (char*)zframe_data(frames.at(3));
+                const char *pMsg = (char*)zframe_data(frames.at(4));
+                if (pGroup)
+                {
+                    group = std::string(pGroup);
+                    group = group.substr(0, frame_sizes.at(3));
+                    std::cout << "  peer group = " << group << std::endl;
+                }                                  
+                if (pMsg)
+                {
+                    message = std::string(pMsg);
+                    message = message.substr(0, frame_sizes.at(4));
+                    std::cout << "  message = " << message << std::endl;
+                }
+            }
+            if (ztype.compare("WHISPER") == 0)
+            {
+                std::string message;
+                const char *pMsg = (char*)zframe_data(frames.at(3));
+                if (pMsg)
+                {
+                    message = std::string(pMsg);
+                    message = message.substr(0, frame_sizes.at(3));
+                    std::cout << "  message = " << message << std::endl;
+                }                
+            }
+            if (ztype.compare("EXIT") == 0)
+            {
+                // TODO remove the peer from any lists
+            }
+
+            // destroy all the frames
+            for (int i = 0; i < count; i++)
+            {
+                zframe_destroy(&frames.at(i));
             }
         }
     private:
@@ -81,12 +202,11 @@ namespace zyre
     class event_t
     {
     public:
-        event_t(zyre_event_t* self) : m_self(self) {};
+        event_t(zyre_event_t* self) : m_self(self) {};        
 
         ~event_t()
         {
-            if (m_self)
-                zyre_event_destroy(&m_self);
+            if (m_self) zyre_event_destroy(&m_self);
         }
 
         event_t(const event_t& other) = delete;
@@ -116,60 +236,42 @@ namespace zyre
         std::string type() const
         {
             const char *val = zyre_event_type(m_self);
-            if(val == NULL) {
-                return "";
-            }
-
+            if (val == NULL) return "";
             return val;
         }
 
         std::string sender() const
         {
             const char *val = zyre_event_peer_uuid(m_self);
-            if(val == NULL) {
-                return "";
-            }
-
+            if (val == NULL) return "";
             return val;
         }
 
         std::string name() const
         {
             const char *val = zyre_event_peer_name(m_self);
-            if(val == NULL) {
-                return "";
-            }
-
+            if(val == NULL) return "";
             return val;
         }
 
         std::string address() const
         {
             const char *val = zyre_event_peer_addr(m_self);
-            if(val == NULL) {
-                return "";
-            }
-
+            if(val == NULL) return "";
             return val;
         }
 
         std::string header_value(const std::string& key) const
         {
             const char *val = zyre_event_header(m_self, key.c_str());
-            if(val == NULL) {
-                return "";
-            }
-
+            if(val == NULL) return "";
             return val;
         }
 
         std::string group() const
         {
             const char *val = zyre_event_group(m_self);
-            if(val == NULL) {
-                return "";
-            }
-
+            if(val == NULL) return "";
             return val;
         }
 
@@ -190,7 +292,7 @@ namespace zyre
             if (name == "") m_self = zyre_new(NULL);
             else m_self = zyre_new(name.c_str());
 
-            m_poller = zpoller_new(socket(), nullptr); // --> returns null right now...why?
+            m_poller = zpoller_new(socket(), nullptr); // need the last argument to be a nullptr!
         }
 
         ~node_t()
@@ -258,11 +360,19 @@ namespace zyre
             zyre_set_interface(m_self, value.c_str());
         }
 
+        void set_evasive_timeout(int msec)
+        {
+            zyre_set_evasive_timeout (m_self, msec);
+        }
+        void set_expired_timeout(int msec)
+        {
+            zyre_set_expired_timeout (m_self, msec);
+        }   
+
         void start() const
         {
             int rc = zyre_start(m_self);
-            if (rc == -1)
-                throw error_t("Failed to start Zyre node");
+            if (rc == -1) throw error_t("Failed to start Zyre node");
         }
 
         void stop() const
@@ -304,7 +414,7 @@ namespace zyre
                 return nullptr;
             }
             void *which = zpoller_wait(m_poller, msec_deadline);
-            if (m_poller && which) return zmsg_recv(which);
+            if (which) return zmsg_recv(which);
             return nullptr;
         }
 
