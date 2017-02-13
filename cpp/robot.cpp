@@ -2,7 +2,7 @@
 
 
 Robot::Robot()
-: Robot(utility::string_tools::random_string(8), 1000, false)
+: Robot("robot_" + utility::string_tools::random_string(8), 1000, false)
 {
 }
 
@@ -71,7 +71,33 @@ void Robot::simple_shout()
   
   // construct a basic message
   zyre::zmsg hey;
-  hey.add_str("LOUD NOISES!!!");
+  //hey.add_str("LOUD NOISES!!!");
+
+  // TODO - try a more complicated message
+  // construct a JSON  
+  nlohmann::json msg_json =
+  {
+    //{"action","GET"},
+    //{"timestamp", utility::time_tools::milliseconds_since_epoch()},
+    {"/self/pose", ""},
+    {"junk", utility::random_numbers::rand(10)}
+  };
+  //hey.add_str(msg_json.dump());
+
+
+  flatbuffers::FlatBufferBuilder builder(8);
+  auto flat_msg = Messages::CreateMessageDirect 
+  (
+    builder,
+    "GET",
+    utility::time_tools::milliseconds_since_epoch(),
+    msg_json.dump().c_str()
+  );
+  builder.Finish(flat_msg);
+  uint8_t *buf = builder.GetBufferPointer();
+  int size = builder.GetSize();
+  hey.add_blob(buf, size);
+
 
   // shout the message
   if (m_pNode)

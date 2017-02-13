@@ -1,0 +1,11 @@
+// Attempt to pack stringified JSON into a flatbuffer
+
+namespace Messages;
+
+table Message {
+  action:string; // the action that defines the message purpose (GET, SET, DELETE, maybe PUSH)
+  timestamp:long; // so the message can be discarded if latency has occurred
+  json:string; // when action is GET or DELETE, this will only be a key, otherwise it will be stringified JSON
+}
+
+root_type Message;

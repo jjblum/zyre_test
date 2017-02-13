@@ -1,13 +1,16 @@
 #pragma once
 
 #include "zyre.h"
-//#include "zyre_library.h" // for typedef of zyre_event_t
-//#include "zyre_event.h"
 
 #include <string>
 #include <exception>
 #include <vector>
 #include <iostream>
+
+#include "nlohmann/json.hpp"
+
+#include "msg_schema_generated.h"
+
 
 namespace zyre
 {
@@ -37,6 +40,10 @@ namespace zyre
         void add_str(std::string string)
         {
             zmsg_addstr(m_msg, string.c_str());
+        }
+        void add_blob(const void *data, size_t size)
+        {
+            zmsg_addmem(m_msg, data, size);
         }
         zmsg_t *msg_ptr()
         {
@@ -156,21 +163,37 @@ namespace zyre
             if (ztype.compare("SHOUT") == 0)
             {
                 std::string group;
-                std::string message;
+                std::string message;                
                 const char *pGroup = (char*)zframe_data(frames.at(3));
                 const char *pMsg = (char*)zframe_data(frames.at(4));
+                //uint8_t *pMsg = (uint8_t*)zframe_data(frames.at(4));
                 if (pGroup)
                 {
                     group = std::string(pGroup);
                     group = group.substr(0, frame_sizes.at(3));
                     std::cout << "  peer group = " << group << std::endl;
-                }                                  
+                }                                                  
                 if (pMsg)
                 {
+                    /*
                     message = std::string(pMsg);
                     message = message.substr(0, frame_sizes.at(4));
                     std::cout << "  message = " << message << std::endl;
-                }
+                    */
+
+                    
+                    auto flat_msg = Messages::GetMessage(pMsg);
+                    auto action = flat_msg->action()->str();
+                    auto timestamp = flat_msg->timestamp();
+                    //auto json = flat_msg->json()->str();
+                    nlohmann::json json = nlohmann::json::parse(flat_msg->json()->str());
+                    std::cout << "  message:" << std::endl;
+                    std::cout << "    action = " << action << std::endl;
+                    std::cout << "    timestamp = " << timestamp << std::endl;
+                    std::cout << "    json = " << json << std::endl;
+                    
+
+                }                
             }
             if (ztype.compare("WHISPER") == 0)
             {
@@ -198,6 +221,133 @@ namespace zyre
         zmsg_t *m_msg = nullptr;
     };
 
+/*
+    class xmsg
+    {
+    public:
+        xmsg() : xmsg("") {} // unknown action
+        xmsg(xrap_msg_t *xrap_msg) : m_msg(xrap_msg) 
+        {
+            m_action_int = xrap_msg_id(m_msg);
+            switch (m_action_int)
+            {
+                case XRAP_MSG_GET:
+                    m_action = "GET";
+                    break;
+                case XRAP_MSG_PUT:
+                    m_action = "PUT";
+                    break;
+                case XRAP_MSG_POST:
+                    m_action = "POST";
+                    break;
+                case XRAP_MSG_DELETE:
+                    m_action = "DELETE";
+                    break;                
+                case XRAP_MSG_GET_OK:
+                    m_action = "GET_OK";
+                    break;        
+                case XRAP_MSG_PUT_OK:
+                    m_action = "PUT_OK";
+                    break;
+                case XRAP_MSG_POST_OK:
+                    m_action = "POST_OK";
+                    break;  
+                case XRAP_MSG_DELETE_OK:
+                    m_action = "DELETE_OK";
+                    break;
+                case XRAP_MSG_GET_EMPTY:
+                    m_action = "GET_EMPTY";
+                    break;   
+                case XRAP_MSG_ERROR:
+                    m_action = "ERROR";         
+            }
+        }      
+        xmsg(std::string action)
+        {            
+            int action_int;
+            if (action.compare("GET") == 0)
+            {
+                action_int = XRAP_MSG_GET;
+            }
+            else if (action.compare("PUT") == 0)
+            {
+                action_int = XRAP_MSG_PUT;
+            }
+            else if (action.compare("POST") == 0)
+            {
+                action_int = XRAP_MSG_POST;
+            }
+            else if (action.compare("GET_OK") == 0)
+            {
+                action_int = XRAP_MSG_GET_OK;
+            }
+            else if (action.compare("PUT_OK") == 0)
+            {
+                action_int = XRAP_MSG_PUT_OK;
+            }
+            else if (action.compare("POST_OK") == 0)
+            {
+                action_int = XRAP_MSG_POST_OK;
+            }            
+            else if (action.compare("GET_EMPTY") == 0)
+            {
+                action_int = XRAP_MSG_GET_EMPTY;
+            }
+            else if (action.compare("DELETE") == 0)
+            {
+                action_int = XRAP_MSG_DELETE;
+            }
+            else if (action.compare("DELETE_OK") == 0)
+            {
+                action_int = XRAP_MSG_DELETE_OK;
+            }    
+            else if (action.compare("ERROR") == 0)
+            {
+                action_int = XRAP_MSG_ERROR;
+            }
+            else // unknown type
+            {
+                std::cout << "WARNING:  xrap message of unknown type. Assigning ERROR to it." << std::endl;
+                action_int = XRAP_MSG_ERROR;
+            }
+            m_msg = xrap_msg_new(action_int);
+            m_action_int = action_int;
+            m_action = action;
+        }
+        ~xmsg()
+        {
+            xrap_msg_destroy(&m_msg);
+        }
+        void set_status_code(int code)
+        {
+            xrap_msg_set_status_code(m_msg, code);
+            m_code = code;
+        }
+
+        static zmsg_t * encode(std::string action, std::string json)
+        {
+
+        }
+
+        void print()
+        {
+            xrap_msg_print (m_msg);
+        }    
+        static xmsg decode(zmsg_t * msg) // static member
+        {
+            if (!is_xrap_msg(msg))
+            {
+                return xmsg();
+            }
+            return xmsg(xrap_msg_decode(&msg));
+        }        
+    private:
+        int m_action_int;
+        int m_code;
+        std::string m_action;
+        xrap_msg_t *m_msg;
+    };    
+*/
 
     class event_t
     {

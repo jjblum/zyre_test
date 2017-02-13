@@ -4,11 +4,14 @@
 #include <string>
 #include <memory>
 #include <iostream>
-
+#include "nlohmann/json.hpp"
 #include "zyrecpp.hpp"
-#include "loopingThreadWrapper.hpp"
 
+#include "loopingThreadWrapper.hpp"
 #include "utility.h"
+
+#include "msg_schema_generated.h"
+
 
 #define ROBOT_STATE_SIZE 3
 
